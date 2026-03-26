@@ -69,6 +69,22 @@ export const mapPortals = pgTable("map_portals", {
   toY: integer("to_y").notNull(),
 });
 
+export const mapTemplates = pgTable("map_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 200 }).notNull(),
+  icon: varchar("icon", { length: 10 }).notNull().default("🗺️"),
+  description: varchar("description", { length: 500 }),
+  cols: integer("cols").notNull(),
+  rows: integer("rows").notNull(),
+  layers: jsonb("layers").notNull(),
+  objects: jsonb("objects").notNull().default([]),
+  spawnCol: integer("spawn_col").notNull(),
+  spawnRow: integer("spawn_row").notNull(),
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
 export const npcs = pgTable("npcs", {
   id: uuid("id").primaryKey().defaultRandom(),
   channelId: uuid("channel_id").notNull().references(() => channels.id, { onDelete: "cascade" }),

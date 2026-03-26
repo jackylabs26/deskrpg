@@ -69,6 +69,22 @@ export const mapPortals = sqliteTable("map_portals", {
   toY: integer("to_y").notNull(),
 });
 
+export const mapTemplates = sqliteTable("map_templates", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  icon: text("icon").notNull().default("🗺️"),
+  description: text("description"),
+  cols: integer("cols").notNull(),
+  rows: integer("rows").notNull(),
+  layers: text("layers").notNull(),
+  objects: text("objects").notNull().default("[]"),
+  spawnCol: integer("spawn_col").notNull(),
+  spawnRow: integer("spawn_row").notNull(),
+  createdBy: text("created_by").references(() => users.id),
+  createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
+});
+
 export const npcs = sqliteTable("npcs", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   channelId: text("channel_id").notNull().references(() => channels.id, { onDelete: "cascade" }),
