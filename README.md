@@ -1,6 +1,10 @@
 # DeskRPG
 
-2D pixel art multiplayer virtual office game. Create LPC characters, join channels, walk around, chat with AI NPCs, and communicate with other players in real-time.
+2D pixel art multiplayer virtual office game. Create LPC characters, join channels, walk around, chat with AI NPCs, and collaborate in real-time.
+
+**Website:** https://deskrpg.com (Coming Soon)
+**Guide:** [docs/GUIDE.md](docs/GUIDE.md)
+**YouTube:** [@dante-labs](https://youtube.com/@dante-labs)
 
 ## Tech Stack
 
@@ -153,4 +157,10 @@ docker-compose.yml     # Production deployment
 
 ## License
 
-See [LICENSE](LICENSE) for details.
+[Sustainable Use License](LICENSE.md) — Free for self-hosting and non-commercial use. See [LICENSE.md](LICENSE.md) for details.
+
+## Support
+
+- YouTube: [@dante-labs](https://youtube.com/@dante-labs)
+- Email: dante@dante-labs.com
+- Buy Me a Coffee: https://buymeacoffee.com/dante.labs
