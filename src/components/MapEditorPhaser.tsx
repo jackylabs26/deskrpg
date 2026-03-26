@@ -33,19 +33,23 @@ export default function MapEditorPhaser({
     const width = container.clientWidth;
     const height = container.clientHeight;
 
+    let sceneReadyHandler: (() => void) | null = null;
+
     import("@/game/editor-main").then(({ createEditorGame }) => {
       const game = createEditorGame("map-editor-canvas", width, height);
       gameRef.current = game;
 
-      EventBus.on("editor:scene-ready", () => {
+      sceneReadyHandler = () => {
         if (!mapLoadedRef.current) {
           mapLoadedRef.current = true;
           EventBus.emit("editor:load-map", { layers: mapData.layers, objects: mapData.objects, cols, rows, spawnCol, spawnRow });
         }
-      });
+      };
+      EventBus.on("editor:scene-ready", sceneReadyHandler);
     });
 
     return () => {
+      if (sceneReadyHandler) EventBus.off("editor:scene-ready", sceneReadyHandler);
       gameRef.current?.destroy(true);
       gameRef.current = null;
       mapLoadedRef.current = false;

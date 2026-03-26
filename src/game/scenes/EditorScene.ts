@@ -181,6 +181,9 @@ export class EditorScene extends Phaser.Scene {
   // ---------------------------------------------------------------------------
 
   private loadMap(data: EditorMapData): void {
+    // Guard: scene may have been destroyed (React Strict Mode double-mount)
+    if (!this.cameras?.main) return;
+
     this.floorData = data.layers.floor.map((row) => [...row]);
     this.wallsData = data.layers.walls.map((row) => [...row]);
     this.mapObjects = data.objects ? [...data.objects] : [];
