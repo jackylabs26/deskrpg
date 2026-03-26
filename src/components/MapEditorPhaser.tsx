@@ -33,6 +33,17 @@ export default function MapEditorPhaser({
     const width = container.clientWidth;
     const height = container.clientHeight;
 
+    // Clear stale listeners from previous game instances (React Strict Mode)
+    EventBus.removeAllListeners("editor:scene-ready");
+    EventBus.removeAllListeners("editor:load-map");
+    EventBus.removeAllListeners("editor:tile-changed");
+    EventBus.removeAllListeners("editor:objects-changed");
+    EventBus.removeAllListeners("editor:spawn-changed");
+    EventBus.removeAllListeners("editor:fill-applied");
+    EventBus.removeAllListeners("editor:tile-hover");
+    EventBus.removeAllListeners("editor:map-data-response");
+    EventBus.removeAllListeners("editor:map-resized");
+
     let sceneReadyHandler: (() => void) | null = null;
 
     import("@/game/editor-main").then(({ createEditorGame }) => {

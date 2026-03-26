@@ -81,8 +81,11 @@ export class EditorScene extends Phaser.Scene {
     // Listen for EventBus events from React
     this.registerEventListeners();
 
+    // Cleanup when Phaser destroys this scene (Game.destroy doesn't call our destroy())
+    this.events.once("shutdown", () => this.cleanupEventBus());
+    this.events.once("destroy", () => this.cleanupEventBus());
+
     // Emit ready event on next frame — ensures create() is fully complete
-    // and if scene is destroyed (React Strict Mode), the timer won't fire
     this.time.delayedCall(0, () => {
       EventBus.emit("editor:scene-ready");
     });
@@ -724,18 +727,19 @@ export class EditorScene extends Phaser.Scene {
   // Cleanup
   // ---------------------------------------------------------------------------
 
-  destroy(): void {
-    // Remove all EventBus listeners
+  private cleanupEventBus(): void {
     for (const { event, fn } of this.boundHandlers) {
       EventBus.off(event, fn);
     }
     this.boundHandlers = [];
+  }
 
-    // Destroy sprites
+  destroy(): void {
+    this.cleanupEventBus();
+
     for (const sprite of this.objectSprites.values()) {
       sprite.destroy();
     }
     this.objectSprites.clear();
-
   }
 }
