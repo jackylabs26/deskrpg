@@ -158,6 +158,11 @@ export class EditorScene extends Phaser.Scene {
       this.drawSpawnMarker();
     });
 
+    listen("editor:resize-map", (data: unknown) => {
+      const { cols: newCols, rows: newRows } = data as { cols: number; rows: number };
+      this.resizeMap(newCols, newRows);
+    });
+
     listen("editor:request-map-data", () => {
       EventBus.emit("editor:map-data-response", {
         layers: {
@@ -199,6 +204,77 @@ export class EditorScene extends Phaser.Scene {
     this.renderObjects();
     this.drawGrid();
     this.drawSpawnMarker();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Map resize
+  // ---------------------------------------------------------------------------
+
+  private resizeMap(newCols: number, newRows: number): void {
+    const oldFloor = this.floorData;
+    const oldWalls = this.wallsData;
+
+    // Create new arrays
+    const newFloor: number[][] = [];
+    const newWalls: number[][] = [];
+
+    for (let r = 0; r < newRows; r++) {
+      const floorRow = new Array(newCols).fill(0);
+      const wallsRow = new Array(newCols).fill(0);
+
+      for (let c = 0; c < newCols; c++) {
+        // Copy existing data where available
+        if (r < this.mapRows && c < this.mapCols) {
+          floorRow[c] = oldFloor[r][c];
+          wallsRow[c] = oldWalls[r][c];
+        } else {
+          // New cells: floor inside, walls on edges
+          const isEdge = r === 0 || r === newRows - 1 || c === 0 || c === newCols - 1;
+          floorRow[c] = isEdge ? 0 : 1; // FLOOR for interior
+          wallsRow[c] = isEdge ? 2 : 0; // WALL for edges
+        }
+      }
+
+      newFloor.push(floorRow);
+      newWalls.push(wallsRow);
+    }
+
+    // Update edges for existing area too (if map grew)
+    for (let r = 0; r < newRows; r++) {
+      for (let c = 0; c < newCols; c++) {
+        const isEdge = r === 0 || r === newRows - 1 || c === 0 || c === newCols - 1;
+        if (isEdge && newWalls[r][c] === 0) {
+          newWalls[r][c] = 2; // Add wall on new edges
+          newFloor[r][c] = 0; // Remove floor under new walls
+        }
+      }
+    }
+
+    // Filter out objects that are now outside bounds
+    this.mapObjects = this.mapObjects.filter((obj) => {
+      return obj.col < newCols && obj.row < newRows;
+    });
+
+    // Clamp spawn
+    this.spawnCol = Math.min(this.spawnCol, newCols - 1);
+    this.spawnRow = Math.min(this.spawnRow, newRows - 1);
+
+    this.floorData = newFloor;
+    this.wallsData = newWalls;
+    this.mapCols = newCols;
+    this.mapRows = newRows;
+
+    // Update camera bounds
+    const mapWidth = this.mapCols * TILE_SIZE;
+    const mapHeight = this.mapRows * TILE_SIZE;
+    this.cameras.main.setBounds(-TILE_SIZE, -TILE_SIZE, mapWidth + TILE_SIZE * 2, mapHeight + TILE_SIZE * 2);
+
+    this.rebuildTilemap();
+    this.renderObjects();
+    this.drawGrid();
+    this.drawSpawnMarker();
+
+    EventBus.emit("editor:map-resized", { cols: newCols, rows: newRows, spawnCol: this.spawnCol, spawnRow: this.spawnRow });
   }
 
   // ---------------------------------------------------------------------------

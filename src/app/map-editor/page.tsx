@@ -19,11 +19,33 @@ export default function MapEditorListPage() {
   const router = useRouter();
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetch("/api/map-templates")
       .then((r) => r.json())
-      .then((data) => setTemplates(data.templates || []))
+      .then(async (data) => {
+        const list = data.templates || [];
+        setTemplates(list);
+
+        // Generate thumbnails for each template
+        const { generateMapThumbnail } = await import("@/lib/map-thumbnail");
+        const thumbs: Record<string, string> = {};
+
+        for (const t of list) {
+          try {
+            const res = await fetch(`/api/map-templates/${t.id}`);
+            const detail = await res.json();
+            const template = detail.template;
+            const layers = typeof template.layers === "string" ? JSON.parse(template.layers) : template.layers;
+            const objects = typeof template.objects === "string" ? JSON.parse(template.objects) : template.objects;
+            thumbs[t.id] = generateMapThumbnail(layers, objects, template.cols, template.rows, 6);
+          } catch {
+            // Skip thumbnail on error
+          }
+        }
+        setThumbnails(thumbs);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -88,6 +110,11 @@ export default function MapEditorListPage() {
                 key={t.id}
                 className="bg-surface border border-border rounded-lg p-4 hover:border-primary-light transition"
               >
+                {thumbnails[t.id] && (
+                  <img src={thumbnails[t.id]} alt={t.name}
+                    className="w-full rounded mb-2 border border-border"
+                    style={{ imageRendering: "pixelated" }} />
+                )}
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <span className="text-xl mr-2">{t.icon}</span>

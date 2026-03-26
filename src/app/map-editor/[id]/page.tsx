@@ -43,6 +43,9 @@ export default function MapEditorEditPage() {
   const [selectedObjectType, setSelectedObjectType] = useState("desk");
   const [hoverCol, setHoverCol] = useState(-1);
   const [hoverRow, setHoverRow] = useState(-1);
+  const [showResize, setShowResize] = useState(false);
+  const [newCols, setNewCols] = useState(cols);
+  const [newRows, setNewRows] = useState(rows);
 
   const historyRef = useRef(new EditorHistory());
   const [canUndo, setCanUndo] = useState(false);
@@ -193,6 +196,34 @@ export default function MapEditorEditPage() {
     };
   }, []);
 
+  // Sync resize inputs when cols/rows load from API
+  useEffect(() => {
+    setNewCols(cols);
+    setNewRows(rows);
+  }, [cols, rows]);
+
+  // Listen for map-resized event from Phaser
+  useEffect(() => {
+    const handler = (data: { cols: number; rows: number; spawnCol: number; spawnRow: number }) => {
+      setCols(data.cols);
+      setRows(data.rows);
+      setSpawnCol(data.spawnCol);
+      setSpawnRow(data.spawnRow);
+    };
+    EventBus.on("editor:map-resized", handler);
+    return () => { EventBus.off("editor:map-resized", handler); };
+  }, []);
+
+  const handleResize = () => {
+    const clampedCols = Math.max(10, Math.min(40, newCols));
+    const clampedRows = Math.max(8, Math.min(30, newRows));
+
+    EventBus.emit("editor:resize-map", { cols: clampedCols, rows: clampedRows });
+    setCols(clampedCols);
+    setRows(clampedRows);
+    setShowResize(false);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -263,6 +294,28 @@ export default function MapEditorEditPage() {
           className="bg-transparent border-b border-border text-lg font-semibold focus:outline-none focus:border-primary-light px-1"
           placeholder="Map name"
         />
+        <div className="relative flex items-center gap-2 text-xs text-text-muted">
+          <span>{cols}&times;{rows}</span>
+          <button onClick={() => setShowResize(!showResize)} className="text-primary-light hover:underline text-xs">
+            Resize
+          </button>
+          {showResize && (
+            <div className="absolute top-8 left-0 bg-surface border border-border rounded-lg p-3 shadow-lg z-50 flex items-end gap-2">
+              <div>
+                <label className="block text-xs text-text-muted mb-1">Width</label>
+                <input type="number" value={newCols} onChange={(e) => setNewCols(Number(e.target.value))}
+                  min={10} max={40} className="w-16 px-2 py-1 bg-bg border border-border rounded text-xs text-text" />
+              </div>
+              <div>
+                <label className="block text-xs text-text-muted mb-1">Height</label>
+                <input type="number" value={newRows} onChange={(e) => setNewRows(Number(e.target.value))}
+                  min={8} max={30} className="w-16 px-2 py-1 bg-bg border border-border rounded text-xs text-text" />
+              </div>
+              <button onClick={handleResize} className="px-3 py-1 bg-primary rounded text-xs font-semibold">Apply</button>
+              <button onClick={() => setShowResize(false)} className="px-2 py-1 text-xs text-text-muted">Cancel</button>
+            </div>
+          )}
+        </div>
         <button
           onClick={handleSave}
           disabled={saving}

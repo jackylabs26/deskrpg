@@ -37,6 +37,7 @@ function CreateChannelPageInner() {
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
 
   // --- AI Gateway ---
   const [gatewayOpen, setGatewayOpen] = useState(false);
@@ -60,12 +61,29 @@ function CreateChannelPageInner() {
   useEffect(() => {
     fetch("/api/map-templates")
       .then((r) => r.json())
-      .then((data) => {
+      .then(async (data) => {
         const templates = data.templates || [];
         setTemplateList(templates);
         if (templates.length > 0 && !mapTemplateId) {
           setMapTemplateId(templates[0].id);
         }
+
+        // Generate thumbnails
+        try {
+          const { generateMapThumbnail } = await import("@/lib/map-thumbnail");
+          const thumbs: Record<string, string> = {};
+          for (const t of templates) {
+            try {
+              const res = await fetch(`/api/map-templates/${t.id}`);
+              const detail = await res.json();
+              const tmpl = detail.template;
+              const layers = typeof tmpl.layers === "string" ? JSON.parse(tmpl.layers) : tmpl.layers;
+              const objects = typeof tmpl.objects === "string" ? JSON.parse(tmpl.objects) : tmpl.objects;
+              thumbs[t.id] = generateMapThumbnail(layers, objects, tmpl.cols, tmpl.rows, 4);
+            } catch { /* skip */ }
+          }
+          setThumbnails(thumbs);
+        } catch { /* skip */ }
       });
   }, []);
 
@@ -296,6 +314,11 @@ function CreateChannelPageInner() {
                       : "border-border bg-surface hover:border-border text-text-muted"
                   }`}
                 >
+                  {thumbnails[tpl.id] && (
+                    <img src={thumbnails[tpl.id]} alt={tpl.name}
+                      className="w-full rounded mb-1 border border-border"
+                      style={{ imageRendering: "pixelated" }} />
+                  )}
                   <div className="mb-1 text-xl">{tpl.icon}</div>
                   <div className="font-semibold text-sm text-white">{tpl.name}</div>
                   <div className="text-xs text-text-muted mt-1">{tpl.cols}x{tpl.rows}</div>
