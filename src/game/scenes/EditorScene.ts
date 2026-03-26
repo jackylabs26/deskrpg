@@ -578,6 +578,5 @@ export class EditorScene extends Phaser.Scene {
     }
     this.objectSprites.clear();
 
-    super.destroy();
   }
 }
