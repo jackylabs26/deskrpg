@@ -6,7 +6,7 @@ import Link from "next/link";
 import { NPC_PRESETS } from "@/lib/npc-presets";
 import { PERSONA_PRESETS, applyPresetName } from "@/lib/npc-persona-presets";
 import { useT } from "@/lib/i18n";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, Plus, Trash2, ExternalLink } from "lucide-react";
 
 export default function CreateChannelPage() {
   return (
@@ -314,16 +314,45 @@ function CreateChannelPageInner() {
             <label className="block text-sm font-semibold mb-2">{t("channels.create.mapTemplate")} *</label>
             <div className="grid grid-cols-3 gap-3">
               {templateList.map((tpl) => (
-                <button
+                <div
                   key={tpl.id}
-                  type="button"
-                  onClick={() => setMapTemplateId(tpl.id)}
-                  className={`p-3 rounded-lg border text-center transition flex flex-col items-center ${
+                  className={`relative p-3 rounded-lg border text-center transition flex flex-col items-center cursor-pointer group ${
                     mapTemplateId === tpl.id
                       ? "border-primary-light bg-primary-muted text-primary-light"
                       : "border-border bg-surface hover:border-border text-text-muted"
                   }`}
+                  onClick={() => setMapTemplateId(tpl.id)}
                 >
+                  {/* Action buttons (top-right) */}
+                  <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Link
+                      href={`/map-editor?from=create&characterId=${characterId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-1 rounded bg-surface-raised border border-border hover:border-primary-light"
+                      title="맵 에디터에서 보기"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!confirm(`"${tpl.name}" 템플릿을 삭제할까요?`)) return;
+                        fetch(`/api/map-templates/${tpl.id}`, { method: "DELETE" }).then((res) => {
+                          if (res.ok) {
+                            setTemplateList((prev) => prev.filter((t) => t.id !== tpl.id));
+                            if (mapTemplateId === tpl.id) {
+                              setMapTemplateId(templateList.find((t) => t.id !== tpl.id)?.id || "");
+                            }
+                          }
+                        });
+                      }}
+                      className="p-1 rounded bg-surface-raised border border-border hover:border-danger text-danger"
+                      title="삭제"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
                   {thumbnails[tpl.id] && (
                     <img src={thumbnails[tpl.id]} alt={tpl.name}
                       className="w-full rounded mb-1 border border-border"
@@ -332,7 +361,7 @@ function CreateChannelPageInner() {
                   <div className="mb-1 text-xl">{tpl.icon}</div>
                   <div className="font-semibold text-sm text-white">{tpl.name}</div>
                   <div className="text-xs text-text-muted mt-1">{tpl.cols}x{tpl.rows}</div>
-                </button>
+                </div>
               ))}
               {/* Add new template button */}
               <Link
