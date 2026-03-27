@@ -1781,21 +1781,43 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // Create tile layers by name
+    // Create tile layers — try by name first, fallback to order
     const mapWidth = (tiledJson.width as number) || MAP_COLS;
     const mapHeight = (tiledJson.height as number) || MAP_ROWS;
 
-    const floorLayer = map.createLayer("floor", map.tilesets);
-    if (floorLayer) {
-      floorLayer.setDepth(0);
-      this.floorLayer = floorLayer;
+    // Get all tile layer names from the Tiled JSON
+    const tiledLayers = (tiledJson.layers as Array<{ name: string; type: string }>) || [];
+    const tileLayerNames = tiledLayers.filter(l => l.type === "tilelayer").map(l => l.name);
+
+    // Try named layers first, fallback to first/second tile layer by order
+    const floorLayerName = tileLayerNames.find(n => n.toLowerCase() === "floor") || tileLayerNames[0];
+    const wallsLayerName = tileLayerNames.find(n => n.toLowerCase() === "walls") || tileLayerNames[1];
+
+    let floorLayer: Phaser.Tilemaps.TilemapLayer | null = null;
+    if (floorLayerName) {
+      floorLayer = map.createLayer(floorLayerName, map.tilesets);
+      if (floorLayer) {
+        floorLayer.setDepth(0);
+        this.floorLayer = floorLayer;
+      }
     }
 
-    const wallsLayer = map.createLayer("walls", map.tilesets);
-    if (wallsLayer) {
-      wallsLayer.setDepth(1);
-      this.wallsLayer = wallsLayer;
-      wallsLayer.setCollisionByProperty({ collision: true });
+    let wallsLayer: Phaser.Tilemaps.TilemapLayer | null = null;
+    if (wallsLayerName && wallsLayerName !== floorLayerName) {
+      wallsLayer = map.createLayer(wallsLayerName, map.tilesets);
+      if (wallsLayer) {
+        wallsLayer.setDepth(1);
+        this.wallsLayer = wallsLayer;
+        wallsLayer.setCollisionByProperty({ collision: true });
+      }
+    }
+
+    // Create any remaining tile layers (3rd, 4th, etc.)
+    for (let i = 0; i < tileLayerNames.length; i++) {
+      const name = tileLayerNames[i];
+      if (name === floorLayerName || name === wallsLayerName) continue;
+      const extraLayer = map.createLayer(name, map.tilesets);
+      if (extraLayer) extraLayer.setDepth(i + 2);
     }
 
     // Extract floor/walls data arrays for the legacy collision system
@@ -1821,9 +1843,9 @@ export class GameScene extends Phaser.Scene {
 
     // Process object layers
     this.mapObjects = [];
-    const tiledLayers = tiledJson.layers as Array<Record<string, unknown>> | undefined;
-    for (const layer of tiledLayers || []) {
-      if (layer.type === "objectgroup" && layer.name === "objects") {
+    const allLayers = tiledJson.layers as Array<Record<string, unknown>> | undefined;
+    for (const layer of allLayers || []) {
+      if (layer.type === "objectgroup") {
         const objects = layer.objects as Array<Record<string, unknown>> | undefined;
         for (const obj of objects || []) {
           // Spawn point
