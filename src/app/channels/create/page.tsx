@@ -6,7 +6,7 @@ import Link from "next/link";
 import { NPC_PRESETS } from "@/lib/npc-presets";
 import { PERSONA_PRESETS, applyPresetName } from "@/lib/npc-persona-presets";
 import { useT } from "@/lib/i18n";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 
 export default function CreateChannelPage() {
   return (
@@ -64,7 +64,11 @@ function CreateChannelPageInner() {
       .then(async (data) => {
         const templates = data.templates || [];
         setTemplateList(templates);
-        if (templates.length > 0 && !mapTemplateId) {
+        // Auto-select: URL templateId param > first template
+        const urlTemplateId = searchParams.get("templateId");
+        if (urlTemplateId && templates.some((t: { id: string }) => t.id === urlTemplateId)) {
+          setMapTemplateId(urlTemplateId);
+        } else if (templates.length > 0 && !mapTemplateId) {
           setMapTemplateId(templates[0].id);
         }
 
@@ -361,6 +365,14 @@ function CreateChannelPageInner() {
                   <div className="text-xs text-text-muted mt-1">{tpl.cols}x{tpl.rows}</div>
                 </button>
               ))}
+              {/* Add new template button */}
+              <Link
+                href={`/map-editor?from=create&characterId=${characterId}`}
+                className="p-3 rounded-lg border border-dashed border-border text-center transition flex flex-col items-center justify-center hover:border-primary-light text-text-muted hover:text-text"
+              >
+                <Plus className="w-6 h-6 mb-1" />
+                <div className="font-semibold text-sm">맵 추가</div>
+              </Link>
             </div>
           </div>
 

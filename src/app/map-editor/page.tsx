@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Upload, Download, Trash2, Copy, Search, Package } from "lucide-react";
+import { Upload, Download, Trash2, Copy, Search, Package, ArrowLeft } from "lucide-react";
+
+export default function MapEditorPage() {
+  return (
+    <Suspense fallback={<div className="theme-web min-h-screen flex items-center justify-center bg-bg text-text">Loading...</div>}>
+      <MapEditorListPage />
+    </Suspense>
+  );
+}
 
 interface TemplateSummary {
   id: string;
@@ -15,7 +24,12 @@ interface TemplateSummary {
   createdAt: string;
 }
 
-export default function MapEditorListPage() {
+function MapEditorListPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromCreate = searchParams.get("from") === "create";
+  const characterId = searchParams.get("characterId");
+
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -141,6 +155,16 @@ export default function MapEditorListPage() {
 
       if (res.ok) {
         const { template } = await res.json();
+
+        // If coming from channel creation, redirect back with new template selected
+        if (fromCreate) {
+          const params = new URLSearchParams();
+          if (characterId) params.set("characterId", characterId);
+          params.set("templateId", template.id);
+          router.push(`/channels/create?${params.toString()}`);
+          return;
+        }
+
         setTemplates((prev) => [template, ...prev]);
 
         // Generate thumbnail for uploaded template
@@ -251,6 +275,16 @@ export default function MapEditorListPage() {
   return (
     <div className="theme-web min-h-screen bg-bg text-text p-8">
       <div className="max-w-4xl mx-auto">
+        {/* Back to channel creation banner */}
+        {fromCreate && (
+          <Link
+            href={`/channels/create?characterId=${characterId || ""}`}
+            className="flex items-center gap-2 mb-4 px-4 py-2 bg-surface border border-border rounded-lg text-sm text-text-muted hover:text-text hover:border-primary-light transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            채널 만들기로 돌아가기
+          </Link>
+        )}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Map Templates</h1>
           <div className="flex items-center gap-2">
@@ -315,7 +349,14 @@ export default function MapEditorListPage() {
                     ))}
                   </div>
                 )}
-                <div className="flex gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {fromCreate && (
+                    <Link
+                      href={`/channels/create?characterId=${characterId || ""}&templateId=${t.id}`}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded text-xs bg-primary hover:bg-primary-hover text-white font-semibold">
+                      선택
+                    </Link>
+                  )}
                   <button onClick={() => handleDownload(t.id)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded text-xs bg-surface-raised border border-border hover:border-primary-light">
                     <Download className="w-3 h-3" /> .tmj
