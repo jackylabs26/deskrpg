@@ -1,5 +1,4 @@
 // src/lib/map-editor-utils.ts — Map editor helper functions
-import type { MapData, MapObject } from "./object-types";
 
 /** Tile constants matching GameScene T and BootScene tileset */
 export const TILES = {
@@ -10,75 +9,11 @@ export const TILES = {
   CARPET: 12,
 } as const;
 
-/** Floor tile palette items */
-export const FLOOR_PALETTE = [
-  { id: TILES.EMPTY, name: "Empty", color: "#1a1a2e" },
-  { id: TILES.FLOOR, name: "Floor", color: "#8b8378" },
-  { id: TILES.CARPET, name: "Carpet", color: "#6b6560" },
-] as const;
-
-/** Wall tile palette items */
-export const WALL_PALETTE = [
-  { id: TILES.EMPTY, name: "Empty", color: "#1a1a2e" },
-  { id: TILES.WALL, name: "Wall", color: "#4a4a5e" },
-  { id: TILES.DOOR, name: "Door", color: "#8b7a5a" },
-] as const;
-
 /** Validation constraints */
 export const MAP_SIZE_MIN_COLS = 10;
 export const MAP_SIZE_MAX_COLS = 40;
 export const MAP_SIZE_MIN_ROWS = 8;
 export const MAP_SIZE_MAX_ROWS = 30;
-
-/**
- * Generate a blank map with outer walls, floor, and doors at bottom center.
- */
-export function generateBlankMap(cols: number, rows: number): {
-  mapData: MapData;
-  spawnCol: number;
-  spawnRow: number;
-} {
-  const floor: number[][] = [];
-  const walls: number[][] = [];
-
-  for (let r = 0; r < rows; r++) {
-    const floorRow = new Array(cols).fill(TILES.EMPTY);
-    const wallsRow = new Array(cols).fill(TILES.EMPTY);
-
-    for (let c = 0; c < cols; c++) {
-      const isTop = r === 0;
-      const isBottom = r === rows - 1;
-      const isLeft = c === 0;
-      const isRight = c === cols - 1;
-      const isEdge = isTop || isBottom || isLeft || isRight;
-
-      // Bottom center: 3 doors
-      const doorStart = Math.floor(cols / 2) - 1;
-      const isDoor = isBottom && c >= doorStart && c < doorStart + 3;
-
-      if (isDoor) {
-        wallsRow[c] = TILES.DOOR;
-        floorRow[c] = TILES.FLOOR;
-      } else if (isEdge) {
-        wallsRow[c] = TILES.WALL;
-      } else {
-        floorRow[c] = TILES.FLOOR;
-      }
-    }
-
-    floor.push(floorRow);
-    walls.push(wallsRow);
-  }
-
-  const spawnCol = Math.floor(cols / 2);
-  const spawnRow = rows - 2;
-
-  return {
-    mapData: { layers: { floor, walls }, objects: [] },
-    spawnCol,
-    spawnRow,
-  };
-}
 
 /**
  * Validate map template data for API create/update.
@@ -130,48 +65,4 @@ export function validateMapTemplate(data: {
     return "spawn position cannot be on a wall";
   }
   return null;
-}
-
-/** Undo/Redo history for tile edits */
-export type EditorAction =
-  | { type: "tile"; layer: "floor" | "walls"; col: number; row: number; prev: number; next: number }
-  | { type: "objects"; prev: MapObject[]; next: MapObject[] }
-  | { type: "spawn"; prev: { col: number; row: number }; next: { col: number; row: number } };
-
-export class EditorHistory {
-  private undoStack: EditorAction[] = [];
-  private redoStack: EditorAction[] = [];
-  private readonly maxSize: number;
-
-  constructor(maxSize = 50) {
-    this.maxSize = maxSize;
-  }
-
-  push(action: EditorAction): void {
-    this.undoStack.push(action);
-    if (this.undoStack.length > this.maxSize) {
-      this.undoStack.shift();
-    }
-    this.redoStack = [];
-  }
-
-  undo(): EditorAction | null {
-    const action = this.undoStack.pop();
-    if (action) this.redoStack.push(action);
-    return action ?? null;
-  }
-
-  redo(): EditorAction | null {
-    const action = this.redoStack.pop();
-    if (action) this.undoStack.push(action);
-    return action ?? null;
-  }
-
-  get canUndo(): boolean { return this.undoStack.length > 0; }
-  get canRedo(): boolean { return this.redoStack.length > 0; }
-
-  clear(): void {
-    this.undoStack = [];
-    this.redoStack = [];
-  }
 }
