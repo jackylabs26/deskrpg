@@ -91,6 +91,7 @@ export function validateMapTemplate(data: {
   layers?: { floor?: number[][]; walls?: number[][] };
   spawnCol?: number;
   spawnRow?: number;
+  tiledJson?: unknown;
 }): string | null {
   if (!data.name || data.name.length < 1 || data.name.length > 200) {
     return "name is required (1-200 chars)";
@@ -101,8 +102,21 @@ export function validateMapTemplate(data: {
   if (typeof data.rows !== "number" || data.rows < MAP_SIZE_MIN_ROWS || data.rows > MAP_SIZE_MAX_ROWS) {
     return `rows must be ${MAP_SIZE_MIN_ROWS}-${MAP_SIZE_MAX_ROWS}`;
   }
+  if (typeof data.spawnCol !== "number" || data.spawnCol < 0 || data.spawnCol >= data.cols) {
+    return "spawnCol out of range";
+  }
+  if (typeof data.spawnRow !== "number" || data.spawnRow < 0 || data.spawnRow >= data.rows) {
+    return "spawnRow out of range";
+  }
+
+  // If tiledJson is provided, skip legacy layers validation
+  if (data.tiledJson) {
+    return null;
+  }
+
+  // Legacy layers validation (required when tiledJson is not provided)
   if (!data.layers?.floor || !data.layers?.walls) {
-    return "layers.floor and layers.walls are required";
+    return "layers.floor and layers.walls are required (or provide tiledJson)";
   }
   if (data.layers.floor.length !== data.rows || data.layers.walls.length !== data.rows) {
     return "layer row count must match rows";
@@ -111,12 +125,6 @@ export function validateMapTemplate(data: {
     if (data.layers.floor[r]?.length !== data.cols || data.layers.walls[r]?.length !== data.cols) {
       return `layer column count at row ${r} must match cols`;
     }
-  }
-  if (typeof data.spawnCol !== "number" || data.spawnCol < 0 || data.spawnCol >= data.cols) {
-    return "spawnCol out of range";
-  }
-  if (typeof data.spawnRow !== "number" || data.spawnRow < 0 || data.spawnRow >= data.rows) {
-    return "spawnRow out of range";
   }
   if (data.layers.walls[data.spawnRow]?.[data.spawnCol] === TILES.WALL) {
     return "spawn position cannot be on a wall";

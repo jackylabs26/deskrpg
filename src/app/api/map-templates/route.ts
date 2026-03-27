@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { name, icon, description, cols, rows, layers, objects, spawnCol, spawnRow, tags } = body;
+    const { name, icon, description, cols, rows, layers, objects, spawnCol, spawnRow, tags, tiledJson } = body;
 
-    const validationError = validateMapTemplate({ name, cols, rows, layers, spawnCol, spawnRow });
+    const validationError = validateMapTemplate({ name, cols, rows, layers, spawnCol, spawnRow, tiledJson });
     if (validationError) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
@@ -50,8 +50,9 @@ export async function POST(req: NextRequest) {
         description: description?.trim() || null,
         cols,
         rows,
-        layers: jsonForDb(layers),
-        objects: jsonForDb(objects || []),
+        layers: layers ? jsonForDb(layers) : null,
+        objects: objects ? jsonForDb(objects) : null,
+        tiledJson: tiledJson ? jsonForDb(tiledJson) : null,
         spawnCol,
         spawnRow,
         tags: tags?.trim() || null,
