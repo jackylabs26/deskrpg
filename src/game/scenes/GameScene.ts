@@ -1804,6 +1804,9 @@ export class GameScene extends Phaser.Scene {
       this.load.once("complete", () => {
         this.finishTiledMapLoad(tiledJson, imagesToLoad);
       });
+      this.load.once("loaderror", (file: { key: string; url: string }) => {
+        console.error("[GameScene] Failed to load tileset image:", file.key, file.url);
+      });
       this.load.start();
       return;
     }
