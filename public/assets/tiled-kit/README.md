@@ -52,11 +52,38 @@ Everything you need to create and edit DeskRPG maps with the [Tiled](https://www
 5. Paint tiles and place objects
 6. Save as `.tmj` (Tiled JSON format)
 
-## Layer Conventions
+## Layer Policy
 
-- **floor**: Use tile 1 (floor) for walkable areas, tile 12 (carpet) for meeting rooms. Tile 0 (empty) under walls.
-- **walls**: Use tile 2 (wall) for boundaries, tile 7 (door) for entrances. Tile 0 (empty) for open space.
-- **objects**: Place point objects for spawn locations (type=`spawn`), rectangle objects for furniture (type=object name, e.g., `desk`).
+DeskRPG recognizes these layer names (case-insensitive). If names don't match, layers are assigned by order.
+
+| Layer Name | Type | Purpose | Visible | Depth |
+|------------|------|---------|:-------:|:-----:|
+| `Floor` (or 1st tile layer) | Tile Layer | Ground, carpet, tiles | Yes | 0 |
+| `Walls` (or 2nd tile layer) | Tile Layer | Walls, doors, structures | Yes | 1 |
+| `Collision` | Tile or Object Layer | Collision areas — blocks movement | **Hidden** | - |
+| `Foreground` / `Above` / `Overlay` | Tile Layer | Rendered ABOVE characters (chair backs, table edges) | Yes | 10000 |
+| Any Object Layer | Object Layer | Spawn points, furniture | Per-object | y-sort |
+| Other tile layers | Tile Layer | Decorations, extra layers | Yes | order |
+
+### Layer Details
+
+- **Floor**: Use tile 1 (floor) for walkable areas, tile 12 (carpet) for meeting rooms. Tile 0 (empty) under walls.
+- **Walls**: Use tile 2 (wall) for boundaries, tile 7 (door) for entrances. Tile 0 (empty) for open space.
+- **Collision** (Tile Layer): Any non-zero tile = blocked. Use for invisible collision boxes.
+- **Collision** (Object Layer): Draw rectangles for collision areas. All objects become impassable zones.
+- **Foreground**: Tiles here render above characters. Use for chair backs, table overhangs, tree canopies — anything that should visually overlap the player.
+- **Objects**: Place point objects for spawn locations (`name="spawn"` or `type="spawn"`), rectangle objects for furniture (`type=desk`, `type=chair`, etc.).
+
+### Custom Tilesets
+
+You can use any tileset, not just the DeskRPG default. Upload as a ZIP containing:
+```
+MyProject.zip
+├── maps/my-map.tmj        ← map file (auto-discovered)
+├── assets/tileset.png      ← tileset image (auto-extracted)
+└── assets/collision.png    ← collision tileset (auto-extracted)
+```
+Important: **Embed tilesets** in TMJ (don't use external .tsx references) for best compatibility.
 
 ## GID Mapping
 
