@@ -140,6 +140,27 @@ export function MapCanvas({ state, dispatch, findTileset, onStatusUpdate }: MapC
     [state.mapData, state.panX, state.panY, state.zoom],
   );
 
+  // === Collision check for character movement ===
+
+  const isBlocked = useCallback(
+    (tileX: number, tileY: number): boolean => {
+      if (!state.mapData) return false;
+      const mapW = state.mapData.width;
+      const idx = tileY * mapW + tileX;
+
+      for (const layer of state.mapData.layers) {
+        if (layer.type !== 'tilelayer' || !layer.data) continue;
+        const name = (layer.name || '').toLowerCase();
+        // Check Collision layer and Walls layer
+        if (name === 'collision' || name === 'walls') {
+          if (layer.data[idx] !== 0) return true;
+        }
+      }
+      return false;
+    },
+    [state.mapData],
+  );
+
   // === Character hit test ===
 
   const isCharacterHit = useCallback(
@@ -308,7 +329,7 @@ export function MapCanvas({ state, dispatch, findTileset, onStatusUpdate }: MapC
       // 1. Pan
       if (panZoom.handleMouseMove(e)) return;
 
-      // 2. Character drag
+      // 2. Character drag (with collision check)
       if (isDraggingCharacter.current) {
         const dx = e.clientX - lastDragPos.current.x;
         const dy = e.clientY - lastDragPos.current.y;
@@ -321,12 +342,23 @@ export function MapCanvas({ state, dispatch, findTileset, onStatusUpdate }: MapC
           const clampedX = Math.max(0, Math.min(mapW - 1, tile.x));
           const clampedY = Math.max(0, Math.min(mapH - 1, tile.y));
 
-          setCharacterState((prev) => ({
-            ...prev,
-            tileX: clampedX,
-            tileY: clampedY,
-            direction: newDir,
-          }));
+          // Check if target tile is blocked (Collision or Walls layer has non-zero GID)
+          const blocked = isBlocked(clampedX, clampedY);
+
+          if (!blocked) {
+            setCharacterState((prev) => ({
+              ...prev,
+              tileX: clampedX,
+              tileY: clampedY,
+              direction: newDir,
+            }));
+          } else {
+            // Still update direction even if blocked
+            setCharacterState((prev) => ({
+              ...prev,
+              direction: newDir,
+            }));
+          }
           lastDragPos.current = { x: e.clientX, y: e.clientY };
         }
         return;
