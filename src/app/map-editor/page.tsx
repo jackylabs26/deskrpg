@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Upload, Download, Trash2, Copy, Search, Package, ArrowLeft } from "lucide-react";
+import { Upload, Download, Trash2, Copy, Search, Package, ArrowLeft, Pencil, Plus } from "lucide-react";
 
 export default function MapEditorPage() {
   return (
@@ -220,8 +220,12 @@ function MapEditorListPage() {
           <h1 className="text-3xl font-bold">Map Templates</h1>
           <div className="flex items-center gap-2">
             <input ref={fileInputRef} type="file" accept=".tmj,.tmx,.json,.xml,.zip,application/json,text/xml,application/zip" onChange={handleFileSelect} className="hidden" />
+            <Link href={`/map-editor/edit${fromCreate ? `?from=create&characterId=${characterId || ""}` : ""}`}
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover rounded font-semibold text-sm">
+              <Plus className="w-4 h-4" /> Create New Map
+            </Link>
             <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
-              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover rounded font-semibold text-sm disabled:opacity-50">
+              className="flex items-center gap-2 px-4 py-2 bg-surface-raised border border-border hover:border-primary-light rounded font-semibold text-sm disabled:opacity-50">
               <Upload className="w-4 h-4" /> {uploading ? "Uploading..." : "Upload Map"}
             </button>
           </div>
@@ -288,6 +292,10 @@ function MapEditorListPage() {
                       선택
                     </Link>
                   )}
+                  <Link href={`/map-editor/edit?templateId=${t.id}${fromCreate ? `&from=create&characterId=${characterId || ""}` : ""}`}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded text-xs bg-surface-raised border border-border hover:border-primary-light">
+                    <Pencil className="w-3 h-3" /> Edit
+                  </Link>
                   <button onClick={() => handleDownload(t.id)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded text-xs bg-surface-raised border border-border hover:border-primary-light">
                     <Download className="w-3 h-3" /> .tmj
