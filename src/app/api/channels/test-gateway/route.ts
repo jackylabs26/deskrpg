@@ -14,9 +14,11 @@ export async function POST(req: NextRequest) {
   const userId = getUserId(req);
   if (!userId) return NextResponse.json({ errorCode: "unauthorized", error: "unauthorized" }, { status: 401 });
 
+  let gatewayUrl: string | undefined;
   try {
     const body = await req.json();
     const { url, token } = body;
+    gatewayUrl = url;
 
     if (!url) {
       return NextResponse.json({
@@ -48,17 +50,27 @@ export async function POST(req: NextRequest) {
       message: "Gateway connection succeeded.",
     });
   } catch (err) {
-    console.error("Gateway validation failed:", err);
+    const status = getGatewayErrorStatus(err, 502);
+    const payload = buildGatewayErrorPayload(err, {
+      ok: false,
+      fallbackErrorCode: "failed_to_reach_test_endpoint",
+      fallbackError: "Unknown error",
+    });
+
+    const isPairingError = status === 409
+      || (err && typeof err === "object" && "pairingRequired" in err && (err as { pairingRequired: boolean }).pairingRequired);
+
+    if (isPairingError) {
+      console.info("[gateway] Pairing required for gateway — url:", gatewayUrl);
+      console.info("[gateway]   errorCode:", (payload as { errorCode?: string }).errorCode);
+      console.info("[gateway]   details:", JSON.stringify((payload as { details?: unknown }).details ?? null));
+    } else {
+      console.error("Gateway validation failed:", err);
+    }
+
     return NextResponse.json(
-      {
-        agents: [],
-        ...buildGatewayErrorPayload(err, {
-          ok: false,
-          fallbackErrorCode: "failed_to_reach_test_endpoint",
-          fallbackError: "Unknown error",
-        }),
-      },
-      { status: getGatewayErrorStatus(err, 502) },
+      { agents: [], ...payload },
+      { status },
     );
   }
 }

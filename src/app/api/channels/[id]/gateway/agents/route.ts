@@ -88,14 +88,24 @@ export async function GET(
 
     return NextResponse.json({ agents });
   } catch (err) {
-    console.error("Failed to list agents:", err);
-    return NextResponse.json(
-      buildGatewayErrorPayload(err, {
-        fallbackErrorCode: "failed_to_list_agents",
-        fallbackError: "Failed to list agents",
-      }),
-      { status: getGatewayErrorStatus(err, 502) },
-    );
+    const status = getGatewayErrorStatus(err, 502);
+    const payload = buildGatewayErrorPayload(err, {
+      fallbackErrorCode: "failed_to_list_agents",
+      fallbackError: "Failed to list agents",
+    });
+
+    const isPairingError = status === 409
+      || (err && typeof err === "object" && "pairingRequired" in err && (err as { pairingRequired: boolean }).pairingRequired);
+
+    if (isPairingError) {
+      console.info("[gateway] Pairing required for channel:", id);
+      console.info("[gateway]   errorCode:", (payload as { errorCode?: string }).errorCode);
+      console.info("[gateway]   details:", JSON.stringify((payload as { details?: unknown }).details ?? null));
+    } else {
+      console.error("Failed to list agents:", err);
+    }
+
+    return NextResponse.json(payload, { status });
   }
 }
 

@@ -8,7 +8,7 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
   size?: "sm" | "md" | "lg";
   icon?: ReactNode;
   loading?: boolean;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 const VARIANT_CLASSES: Record<string, string> = {
@@ -30,9 +30,16 @@ const ICON_SIZE: Record<string, string> = {
   lg: "w-4 h-4",
 };
 
+const ICON_ONLY_SIZE: Record<string, string> = {
+  sm: "p-1.5 rounded-md",
+  md: "p-2 rounded-md",
+  lg: "p-2.5 rounded-lg",
+};
+
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = "primary", size = "md", icon, loading, disabled, children, className = "", ...rest }, ref) => {
     const isDisabled = disabled || loading;
+    const iconOnly = !children && (icon || loading);
 
     return (
       <button
@@ -41,7 +48,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={`
           inline-flex items-center justify-center font-semibold transition-colors
           ${VARIANT_CLASSES[variant]}
-          ${SIZE_CLASSES[size]}
+          ${iconOnly ? ICON_ONLY_SIZE[size] : SIZE_CLASSES[size]}
           ${isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
           ${className}
         `.trim().replace(/\s+/g, " ")}

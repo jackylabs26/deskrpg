@@ -39,16 +39,27 @@ export async function POST(
       message: "Gateway connection succeeded.",
     });
   } catch (err) {
+    const status = getGatewayErrorStatus(err, 502);
+    const payload = buildGatewayErrorPayload(err, {
+      ok: false,
+      fallbackErrorCode: "failed_to_reach_test_endpoint",
+      fallbackError: "Unknown error",
+    });
+
+    const isPairingError = status === 409
+      || (err && typeof err === "object" && "pairingRequired" in err && (err as { pairingRequired: boolean }).pairingRequired);
+
+    if (isPairingError) {
+      console.info("[gateway] Pairing required for gateway:", id);
+      console.info("[gateway]   errorCode:", (payload as { errorCode?: string }).errorCode);
+      console.info("[gateway]   details:", JSON.stringify((payload as { details?: unknown }).details ?? null));
+    } else {
+      console.error("Gateway test failed:", err);
+    }
+
     return NextResponse.json(
-      {
-        agents: [],
-        ...buildGatewayErrorPayload(err, {
-          ok: false,
-          fallbackErrorCode: "failed_to_reach_test_endpoint",
-          fallbackError: "Unknown error",
-        }),
-      },
-      { status: getGatewayErrorStatus(err, 502) },
+      { agents: [], ...payload },
+      { status },
     );
   }
 }

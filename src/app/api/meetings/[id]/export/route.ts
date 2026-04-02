@@ -16,8 +16,10 @@ function formatMinutesMarkdown(m: {
   conclusions: string | null;
   transcript: string;
 }, locale: string | null | undefined): string {
-  const participants = (m.participants as { name: string }[]) || [];
-  const keyTopics = (m.keyTopics as string[]) || [];
+  const rawParticipants = typeof m.participants === "string" ? JSON.parse(m.participants) : m.participants;
+  const participants = (Array.isArray(rawParticipants) ? rawParticipants : []) as { name: string }[];
+  const rawKeyTopics = typeof m.keyTopics === "string" ? JSON.parse(m.keyTopics) : m.keyTopics;
+  const keyTopics = (Array.isArray(rawKeyTopics) ? rawKeyTopics : []) as string[];
   const normalizedLocale = normalizeLocale(locale);
   const duration = m.durationSeconds == null
     ? translateServer(normalizedLocale, "minutes.notAvailable")

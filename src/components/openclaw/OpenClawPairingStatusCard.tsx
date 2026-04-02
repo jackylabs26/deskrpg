@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
+  Check,
   CheckCircle2,
   Copy,
   Link2,
@@ -169,52 +170,44 @@ export default function OpenClawPairingStatusCard({
 
         {normalizedStatus === "pairing-required" ? (
           <div className="space-y-3 rounded-lg border border-info/30 bg-info/5 p-3">
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-              <div className="space-y-1">
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-text-dim">
-                  {t("openclaw.statusCard.requestId")}
-                </div>
-                <code className="block break-all rounded-md bg-surface-raised px-3 py-2 font-mono text-xs text-text">
+            <div className="space-y-1">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-text-dim">
+                {t("openclaw.statusCard.requestId")}
+              </div>
+              <div className="flex items-stretch gap-2">
+                <code className="flex-1 break-all rounded-md bg-surface-raised px-3 py-2 font-mono text-xs text-text leading-relaxed">
                   {trimmedRequestId || t("common.unknown")}
                 </code>
+                <button
+                  type="button"
+                  disabled={!trimmedRequestId}
+                  onClick={() => void handleCopy(trimmedRequestId, "requestId")}
+                  title={t("openclaw.statusCard.copyRequestId")}
+                  className="shrink-0 w-9 flex items-center justify-center rounded-md bg-surface-raised text-text-secondary hover:brightness-125 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {copiedTarget === "requestId" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </button>
               </div>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                icon={<Copy />}
-                disabled={!trimmedRequestId}
-                onClick={() => void handleCopy(trimmedRequestId, "requestId")}
-                title={t("openclaw.statusCard.copyRequestId")}
-              >
-                {copiedTarget === "requestId"
-                  ? t("game.copied")
-                  : t("openclaw.statusCard.copyRequestId")}
-              </Button>
             </div>
 
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-              <div className="space-y-1">
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-text-dim">
-                  {t("openclaw.statusCard.command")}
-                </div>
-                <code className="block break-all rounded-md bg-surface-raised px-3 py-2 font-mono text-xs text-text">
+            <div className="space-y-1">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-text-dim">
+                {t("openclaw.statusCard.command")}
+              </div>
+              <div className="flex items-stretch gap-2">
+                <code className="flex-1 break-all rounded-md bg-surface-raised px-3 py-2 font-mono text-xs text-text leading-relaxed">
                   {approveCommand || t("common.unknown")}
                 </code>
+                <button
+                  type="button"
+                  disabled={!approveCommand}
+                  onClick={() => void handleCopy(approveCommand, "command")}
+                  title={t("openclaw.statusCard.copyCommand")}
+                  className="shrink-0 w-9 flex items-center justify-center rounded-md bg-surface-raised text-text-secondary hover:brightness-125 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {copiedTarget === "command" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </button>
               </div>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                icon={<Copy />}
-                disabled={!approveCommand}
-                onClick={() => void handleCopy(approveCommand, "command")}
-                title={t("openclaw.statusCard.copyCommand")}
-              >
-                {copiedTarget === "command"
-                  ? t("game.copied")
-                  : t("openclaw.statusCard.copyCommand")}
-              </Button>
             </div>
 
             <div className="flex items-start gap-2 rounded-md border border-border bg-surface px-3 py-2 text-xs text-text-secondary">

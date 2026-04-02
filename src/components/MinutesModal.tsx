@@ -66,17 +66,20 @@ export default function MinutesModal({ channelId, onClose }: MinutesModalProps) 
     if (!selectedId) return;
     setExportMenu(false);
     const params = new URLSearchParams({ format, locale });
+    const res = await fetch(`/api/meetings/${selectedId}/export?${params.toString()}`);
     if (format === "clipboard") {
-      const res = await fetch(`/api/meetings/${selectedId}/export?${params.toString()}`);
       const data = await res.json();
       await navigator.clipboard.writeText(data.text);
       return;
     }
-    // Download MD
+    // Download MD via blob
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = `/api/meetings/${selectedId}/export?${params.toString()}`;
-    a.download = "";
+    a.href = url;
+    a.download = `meeting-${selectedId.slice(0, 8)}.md`;
     a.click();
+    URL.revokeObjectURL(url);
   }, [locale, selectedId]);
 
   const handleDelete = useCallback(async () => {
@@ -209,19 +212,19 @@ export default function MinutesModal({ channelId, onClose }: MinutesModalProps) 
                   )}
                 </div>
 
-                <div className="relative">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className={`px-3 py-1.5 rounded-lg ${
-                        deleting
-                          ? "bg-surface text-text-dim cursor-not-allowed"
-                          : "bg-danger-bg hover:bg-danger-hover text-text"
-                      }`}
-                    >
-                      {deleting ? t("common.loading") : t("common.delete")}
-                    </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className={`px-3 py-1.5 rounded-lg ${
+                      deleting
+                        ? "bg-surface text-text-dim cursor-not-allowed"
+                        : "bg-danger-bg hover:bg-danger-hover text-text"
+                    }`}
+                  >
+                    {deleting ? t("common.loading") : t("common.delete")}
+                  </button>
+                  <div className="relative">
                     <button
                       onClick={() => setExportMenu(!exportMenu)}
                       className="px-3 py-1.5 bg-surface-raised hover:brightness-125 rounded-lg text-text-secondary"
@@ -229,7 +232,7 @@ export default function MinutesModal({ channelId, onClose }: MinutesModalProps) 
                       <FileDown className="w-3.5 h-3.5 inline mr-1" />{t("meeting.export")} <ChevronDown className="w-3 h-3 inline ml-0.5" />
                     </button>
                     {exportMenu && (
-                      <div className="absolute bottom-full left-[calc(100%+0.5rem)] mb-1 bg-surface border border-border rounded-lg shadow-xl py-1 min-w-[160px]">
+                      <div className="absolute bottom-full right-0 mb-1 bg-surface border border-border rounded-lg shadow-xl py-1 min-w-[160px]">
                         <button onClick={() => handleExport("md")} className="w-full text-left px-3 py-1.5 hover:bg-surface-raised flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" />{t("meeting.exportMd")}</button>
                         <button onClick={() => handleExport("clipboard")} className="w-full text-left px-3 py-1.5 hover:bg-surface-raised flex items-center gap-1.5"><ClipboardCopy className="w-3.5 h-3.5" />{t("meeting.exportClipboard")}</button>
                       </div>
