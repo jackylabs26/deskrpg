@@ -6,7 +6,6 @@ import {
   isAllowedFileType,
   extractFileContent,
   buildFilePromptSection,
-  buildAttachments,
   type ExtractedFile,
 } from "./file-extractor";
 
@@ -18,10 +17,6 @@ test("isAllowedFileType accepts txt", () => {
 
 test("isAllowedFileType accepts pdf", () => {
   assert.equal(isAllowedFileType("doc.pdf", "application/pdf"), true);
-});
-
-test("isAllowedFileType accepts png", () => {
-  assert.equal(isAllowedFileType("img.png", "image/png"), true);
 });
 
 test("isAllowedFileType accepts xlsx", () => {
@@ -47,6 +42,13 @@ test("isAllowedFileType rejects zip", () => {
   assert.equal(isAllowedFileType("archive.zip", "application/zip"), false);
 });
 
+test("isAllowedFileType rejects image files", () => {
+  assert.equal(isAllowedFileType("photo.png", "image/png"), false);
+  assert.equal(isAllowedFileType("photo.jpg", "image/jpeg"), false);
+  assert.equal(isAllowedFileType("photo.gif", "image/gif"), false);
+  assert.equal(isAllowedFileType("photo.webp", "image/webp"), false);
+});
+
 // --------------- FILE_LIMITS ---------------
 
 test("FILE_LIMITS has correct values", () => {
@@ -62,7 +64,6 @@ test("extractFileContent handles plain text", async () => {
   const result = await extractFileContent(buf, "hello.txt", "text/plain");
   assert.equal(result.name, "hello.txt");
   assert.equal(result.textContent, "Hello, world!");
-  assert.equal(result.base64Data, null);
   assert.equal(result.truncated, false);
 });
 
@@ -92,18 +93,6 @@ test("extractFileContent truncates long text", async () => {
   assert.ok(result.textContent!.includes("60,000"));
 });
 
-test("extractFileContent handles image (1x1 PNG)", async () => {
-  const base64Png =
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
-  const buf = Buffer.from(base64Png, "base64");
-  const result = await extractFileContent(buf, "pixel.png", "image/png");
-  assert.equal(result.name, "pixel.png");
-  assert.equal(result.textContent, null);
-  assert.ok(result.base64Data !== null);
-  assert.ok(result.base64Data!.startsWith("data:image/"));
-  assert.equal(result.truncated, false);
-});
-
 test("extractFileContent returns error for unsupported type", async () => {
   const buf = Buffer.from("binary stuff");
   const result = await extractFileContent(buf, "file.xyz", "application/octet-stream");
@@ -117,18 +106,9 @@ test("buildFilePromptSection returns empty string for no files", () => {
   assert.equal(buildFilePromptSection([]), "");
 });
 
-test("buildFilePromptSection formats image file", () => {
-  const files: ExtractedFile[] = [
-    { name: "pic.png", mimeType: "image/png", textContent: null, base64Data: "data:image/png;base64,abc", truncated: false },
-  ];
-  const result = buildFilePromptSection(files);
-  assert.ok(result.includes("첨부 이미지: pic.png"));
-  assert.ok(result.startsWith("\n\n"));
-});
-
 test("buildFilePromptSection formats text file", () => {
   const files: ExtractedFile[] = [
-    { name: "note.txt", mimeType: "text/plain", textContent: "hello", base64Data: null, truncated: false },
+    { name: "note.txt", mimeType: "text/plain", textContent: "hello", truncated: false },
   ];
   const result = buildFilePromptSection(files);
   assert.ok(result.includes("첨부파일: note.txt"));
@@ -138,29 +118,8 @@ test("buildFilePromptSection formats text file", () => {
 
 test("buildFilePromptSection formats failed file", () => {
   const files: ExtractedFile[] = [
-    { name: "bad.bin", mimeType: "application/octet-stream", textContent: null, base64Data: null, truncated: false },
+    { name: "bad.bin", mimeType: "application/octet-stream", textContent: null, truncated: false },
   ];
   const result = buildFilePromptSection(files);
   assert.ok(result.includes("내용을 읽을 수 없습니다"));
-});
-
-// --------------- buildAttachments ---------------
-
-test("buildAttachments returns undefined when no images", () => {
-  const files: ExtractedFile[] = [
-    { name: "note.txt", mimeType: "text/plain", textContent: "hi", base64Data: null, truncated: false },
-  ];
-  assert.equal(buildAttachments(files), undefined);
-});
-
-test("buildAttachments returns array for image files", () => {
-  const files: ExtractedFile[] = [
-    { name: "pic.png", mimeType: "image/png", textContent: null, base64Data: "data:image/png;base64,abc", truncated: false },
-  ];
-  const result = buildAttachments(files);
-  assert.ok(Array.isArray(result));
-  assert.equal(result!.length, 1);
-  assert.equal(result![0].name, "pic.png");
-  assert.equal(result![0].mimeType, "image/png");
-  assert.equal(result![0].media, "abc"); // data URI prefix stripped for OpenClaw
 });

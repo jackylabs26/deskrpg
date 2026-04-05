@@ -1,6 +1,7 @@
 /**
  * file-extractor.ts
- * Extracts text/image content from uploaded files for NPC chat attachments.
+ * Extracts text content from uploaded files for NPC chat attachments.
+ * Image files are not supported (OpenClaw lacks multimodal vision).
  */
 
 // ─── Constants ───────────────────────────────────────────────────────
@@ -16,7 +17,6 @@ const ALLOWED_EXTENSIONS = new Set([
   ".pdf",
   ".xlsx", ".xls",
   ".docx", ".doc",
-  ".png", ".jpg", ".jpeg", ".gif", ".webp",
 ]);
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -36,7 +36,6 @@ export interface ExtractedFile {
   name: string;
   mimeType: string;
   textContent: string | null;
-  base64Data: string | null;
   truncated: boolean;
 }
 
@@ -85,18 +84,6 @@ async function extractDocx(buffer: Buffer): Promise<string> {
   return result.value;
 }
 
-async function extractImage(
-  buffer: Buffer,
-  mimeType: string,
-): Promise<{ base64Data: string }> {
-  const sharp = (await import("sharp")).default;
-  const resized = await sharp(buffer)
-    .resize({ width: 1024, height: 1024, fit: "inside" })
-    .toBuffer();
-  const b64 = resized.toString("base64");
-  return { base64Data: `data:${mimeType};base64,${b64}` };
-}
-
 // ─── Main extract function ───────────────────────────────────────────
 
 export async function extractFileContent(
@@ -107,13 +94,6 @@ export async function extractFileContent(
   try {
     const ext = extOf(name);
 
-    // Images
-    if (mimeType.startsWith("image/")) {
-      const { base64Data } = await extractImage(buffer, mimeType);
-      return { name, mimeType, textContent: null, base64Data, truncated: false };
-    }
-
-    // Text-based
     let rawText: string | null = null;
 
     if ([".txt", ".md", ".json", ".csv"].includes(ext)) {
@@ -129,34 +109,29 @@ export async function extractFileContent(
         name,
         mimeType,
         textContent: "지원하지 않는 파일 형식입니다.",
-        base64Data: null,
         truncated: false,
       };
     }
 
     const { text, truncated } = truncateText(rawText);
-    return { name, mimeType, textContent: text, base64Data: null, truncated };
+    return { name, mimeType, textContent: text, truncated };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return {
       name,
       mimeType,
       textContent: `[파일 처리 오류: ${name}] ${msg}`,
-      base64Data: null,
       truncated: false,
     };
   }
 }
 
-// ─── Prompt builders ─────────────────────────────────────────────────
+// ─── Prompt builder ─────────────────────────────────────────────────
 
 export function buildFilePromptSection(files: ExtractedFile[]): string {
   if (files.length === 0) return "";
 
   const sections = files.map((f) => {
-    if (f.base64Data) {
-      return `📎 첨부 이미지: ${f.name}`;
-    }
     if (f.textContent) {
       return `📎 첨부파일: ${f.name}\n\`\`\`\n${f.textContent}\n\`\`\``;
     }
@@ -164,16 +139,4 @@ export function buildFilePromptSection(files: ExtractedFile[]): string {
   });
 
   return "\n\n" + sections.join("\n\n");
-}
-
-export function buildAttachments(
-  files: ExtractedFile[],
-): Array<{ name: string; mimeType: string; media: string }> | undefined {
-  const images = files.filter((f) => f.base64Data);
-  if (images.length === 0) return undefined;
-  return images.map((f) => {
-    // Strip data URI prefix — OpenClaw expects raw base64
-    const raw = f.base64Data!.replace(/^data:[^;]+;base64,/, "");
-    return { name: f.name, mimeType: f.mimeType, media: raw };
-  });
 }
