@@ -1223,19 +1223,36 @@ export function setupSocketHandlers(io: Server) {
         },
         onMeetingChat: async ({ channelId, message, room, player }) => {
           const npcConfigs = await getNpcConfigsForChannel(channelId);
-          for (const npc of npcConfigs) {
+          // Stagger NPC responses with random delays, but track all promises
+          const promises = npcConfigs.map((npc) => {
             const delay = 1000 + Math.random() * 2000;
-            setTimeout(async () => {
-              await streamMeetingNpcResponse(
-                io,
-                channelId,
-                npc,
-                room,
-                message,
-                player?.characterName || "Unknown",
-              );
-            }, delay);
-          }
+            return new Promise<void>((resolve) => {
+              setTimeout(async () => {
+                try {
+                  await streamMeetingNpcResponse(
+                    io,
+                    channelId,
+                    npc,
+                    room,
+                    message,
+                    player?.characterName || "Unknown",
+                  );
+                } catch (err) {
+                  console.error(`[meeting] NPC ${npc._name} failed:`, err);
+                  // Notify client that this NPC failed to respond
+                  emitMeetingNpcStream(io, channelId, {
+                    messageId: `error-${Date.now()}-${npc._name}`,
+                    sender: npc._name,
+                    chunk: "",
+                    done: true,
+                    error: true,
+                  });
+                }
+                resolve();
+              }, delay);
+            });
+          });
+          await Promise.allSettled(promises);
         },
       },
     });

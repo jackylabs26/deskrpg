@@ -303,13 +303,23 @@ class OpenClawGateway {
    */
   chatSend(agentId, sessionKey, message, onDelta) {
     return new Promise((resolve, reject) => {
+      if (!this.isConnected()) {
+        return reject(new Error(`Gateway not connected (status: ${this._status}), cannot send chat to ${agentId}`));
+      }
+
       // sessionKey format: agent:{agentId}:{sessionName}
       const fullSessionKey = sessionKey.startsWith("agent:") ? sessionKey : `agent:${agentId}:${sessionKey}`;
-      const id = this._sendRequest("chat.send", {
-        sessionKey: fullSessionKey,
-        message,
-        idempotencyKey: randomUUID(),
-      });
+
+      let id;
+      try {
+        id = this._sendRequest("chat.send", {
+          sessionKey: fullSessionKey,
+          message,
+          idempotencyKey: randomUUID(),
+        });
+      } catch (err) {
+        return reject(err);
+      }
 
       this._chatStreams.set(fullSessionKey, {
         requestId: id,
@@ -372,9 +382,14 @@ class OpenClawGateway {
   _rpcRequest(method, params) {
     return new Promise((resolve, reject) => {
       if (!this.isConnected()) {
-        return reject(new Error("Gateway not connected"));
+        return reject(new Error(`Gateway not connected (status: ${this._status})`));
       }
-      const id = this._sendRequest(method, params);
+      let id;
+      try {
+        id = this._sendRequest(method, params);
+      } catch (err) {
+        return reject(err);
+      }
       const timer = setTimeout(() => {
         this._pending.delete(id);
         reject(new Error(`RPC timeout: ${method}`));
@@ -388,6 +403,8 @@ class OpenClawGateway {
     const frame = { type: "req", id, method, params };
     if (this._ws && this._ws.readyState === WebSocket.OPEN) {
       this._ws.send(JSON.stringify(frame));
+    } else {
+      throw new Error(`WebSocket not open (state: ${this._ws?.readyState ?? "null"}), cannot send ${method}`);
     }
     return id;
   }
