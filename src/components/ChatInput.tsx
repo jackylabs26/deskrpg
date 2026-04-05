@@ -142,7 +142,7 @@ export default function ChatInput({
               multiple
               className="hidden"
               onChange={handleFileSelect}
-              accept=".txt,.md,.json,.csv,.pdf,.png,.jpg,.jpeg,.gif,.webp"
+              accept=".txt,.md,.json,.csv,.pdf,.png,.jpg,.jpeg,.gif,.webp,.xlsx,.xls,.docx,.doc"
             />
           </>
         )}
