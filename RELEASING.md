@@ -27,9 +27,8 @@ Before tagging `0.2.3`, verify:
 
 1. `package.json` version is `0.2.3`
 2. `README.md` and `README.ko.md` reflect the current Docker flow
-3. Docker self-hosting smoke tests have passed
-   - SQLite: `docker/docker-compose.lite.yml`
-   - PostgreSQL: `docker/docker-compose.external.yml`
+3. [Deploy pre-checklist](deploy/pre-deploy-checklist.md) passed
+   - SQLite/PG smoke tests included in the checklist
 4. The working tree is clean enough to release
 5. The release commit is already on `master`
 
