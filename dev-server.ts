@@ -5,11 +5,16 @@ import { createServer } from "node:http";
 import { parse } from "node:url";
 import next from "next";
 import { Server as SocketServer } from "socket.io";
-import { registerGatewayConfigUpdatedHandler, registerRpcHandler } from "./src/lib/rpc-registry";
+import {
+  registerGatewayConfigUpdatedHandler,
+  registerRpcHandler,
+} from "./src/lib/rpc-registry";
 
-const envLoader = (process as typeof process & {
-  loadEnvFile?: (path?: string) => void;
-}).loadEnvFile;
+const envLoader = (
+  process as typeof process & {
+    loadEnvFile?: (path?: string) => void;
+  }
+).loadEnvFile;
 
 try {
   envLoader?.(process.env.DESKRPG_ENV_PATH || ".env.local");
@@ -25,7 +30,11 @@ const app = next({ dev: true, hostname, port });
 const handle = app.getRequestHandler();
 
 app.prepare().then(async () => {
-  const { setupSocketHandlers, getOrConnectGateway, invalidateGatewayConnectionForChannel } = await import("./src/server/socket-handlers");
+  const {
+    setupSocketHandlers,
+    getOrConnectGateway,
+    invalidateGatewayConnectionForChannel,
+  } = await import("./src/server/socket-handlers");
 
   // Register in-process RPC handler so Next.js API routes can call the gateway
   // directly without HTTP — no port dependency.
@@ -33,11 +42,15 @@ app.prepare().then(async () => {
     const gateway = await getOrConnectGateway(channelId);
     if (!gateway) throw new Error("Gateway not connected");
 
-    if (method === "agents.create") return gateway.agentsCreate(params.name, params.workspace);
-    if (method === "agents.files.set") return gateway.agentsFileSet(params.agentId, params.name, params.content);
-    if (method === "agents.files.get") return gateway.agentsFileGet(params.agentId, params.name);
+    if (method === "agents.create")
+      return gateway.agentsCreate(params.name, params.workspace);
+    if (method === "agents.files.set")
+      return gateway.agentsFileSet(params.agentId, params.name, params.content);
+    if (method === "agents.files.get")
+      return gateway.agentsFileGet(params.agentId, params.name);
     if (method === "agents.list") return gateway.agentsList();
-    if (method === "agents.delete") return gateway.agentsDelete(params.agentId, params.deleteFiles);
+    if (method === "agents.delete")
+      return gateway.agentsDelete(params.agentId, params.deleteFiles);
     throw new Error(`Unknown RPC method: ${method}`);
   });
 
