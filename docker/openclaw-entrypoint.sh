@@ -68,4 +68,8 @@ if [ ! -f "$OPENCLAW_WORKSPACE/BOOTSTRAP.md" ]; then
 EOF
 fi
 
-exec "$@"
+# Fix ownership — entrypoint runs as root, but OpenClaw runs as node
+chown -R node:node "$OPENCLAW_HOME" "$OPENCLAW_WORKSPACE" 2>/dev/null || true
+
+# Drop to node user and exec the CMD
+exec runuser -u node -- "$@"
